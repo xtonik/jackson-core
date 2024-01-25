@@ -309,15 +309,14 @@ public final class ByteArrayBuilder
 
     private void _allocMore()
     {
-        final int newPastLen = _pastLen + _currBlock.length;
-
+        final long newPastLen = (long)_pastLen + _currBlock.length;
         // 13-Feb-2016, tatu: As per [core#351] let's try to catch problem earlier;
         //     for now we are strongly limited by 2GB limit of Java arrays
-        if (newPastLen < 0) {
+        if (newPastLen > Integer.MAX_VALUE - 2) {
             throw new IllegalStateException("Maximum Java array size (2GB) exceeded by `ByteArrayBuilder`");
         }
 
-        _pastLen = newPastLen;
+        _pastLen = (int) newPastLen;
 
         /* Let's allocate block that's half the total size, except
          * never smaller than twice the initial block size.
