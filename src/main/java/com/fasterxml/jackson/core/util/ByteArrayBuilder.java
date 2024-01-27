@@ -301,6 +301,9 @@ public final class ByteArrayBuilder
 
     @Override public void flush() { /* NOP */ }
 
+    /** Conservative limit for array size in Java.
+     */
+    public static int MAX_JAVA_ARRAY_SIZE = Integer.MAX_VALUE - 8;
     /*
     /**********************************************************
     /* Internal methods
@@ -312,7 +315,7 @@ public final class ByteArrayBuilder
         final long newPastLen = (long)_pastLen + _currBlock.length;
         // 13-Feb-2016, tatu: As per [core#351] let's try to catch problem earlier;
         //     for now we are strongly limited by 2GB limit of Java arrays
-        if (newPastLen > Integer.MAX_VALUE - 2) {
+        if (newPastLen > MAX_JAVA_ARRAY_SIZE) {
             throw new IllegalStateException("Maximum Java array size (2GB) exceeded by `ByteArrayBuilder`");
         }
 
