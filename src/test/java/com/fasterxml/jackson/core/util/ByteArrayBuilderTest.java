@@ -9,6 +9,8 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.base.GeneratorBase;
 import com.fasterxml.jackson.core.io.IOContext;
 
+import static com.fasterxml.jackson.core.util.ByteArrayBuilder.MAX_JAVA_ARRAY_SIZE;
+
 public class ByteArrayBuilderTest extends com.fasterxml.jackson.core.BaseTest
 {
     public void testSimple() throws Exception
@@ -66,5 +68,41 @@ public class ByteArrayBuilderTest extends com.fasterxml.jackson.core.BaseTest
         // only explicit release does
         br.releaseToPool();
         assertFalse(br.isLinkedWithPool());
+    }
+
+    public void testMaxArraySize_overJavaArrayMaxSize() {
+        int totalSize = Integer.MAX_VALUE - 1;
+        maxArraySize(totalSize);
+    }
+
+    public void testMaxArraySize_overSpecifiedLimit() {
+        int totalSize = MAX_JAVA_ARRAY_SIZE + 1;
+        maxArraySize(totalSize);
+    }
+
+    private static void maxArraySize(int totalSize) {
+        try(ByteArrayBuilder bab = new ByteArrayBuilder(totalSize - 1)) {
+            prepareBuilder(bab, totalSize);
+
+            bab.finishCurrentSegment(); // causes reallocation
+            fail("Exception should be thrown");
+        } catch (IllegalStateException e) {
+            // expected, do nothing
+        } catch (Exception e) {
+            fail("Unexpected exception: " + e.getClass());
+        }
+    }
+
+    private static void prepareBuilder(ByteArrayBuilder bab, int totalSize) {
+        // split to smaller arrays to avoid java.lang.OutOfMemoryError: Java heap space
+        byte[] bytes = new byte[MAX_JAVA_ARRAY_SIZE / 4 + 1];
+        bab.write(bytes);
+        bab.write(bytes);
+        bab.write(bytes);
+        bab.write(bytes);
+        for (int i = 0; i < totalSize - MAX_JAVA_ARRAY_SIZE - 1; i++) {
+            bab.append(1);
+        }
+        assert totalSize == bab.size() : "Array builder should have size = " + totalSize + ", not " + bab.size();
     }
 }
